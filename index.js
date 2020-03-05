@@ -23,7 +23,15 @@ var servers = {}
 var sockets = {}
 var listenersAdded = false
 // Thorough check for Chrome App since both Edge and Chrome implement dummy chrome object
-// if (typeof chrome === 'object' && typeof chrome.runtime === 'object' && typeof chrome.runtime.id === 'string') {
+
+// if (
+//   typeof chrome === 'object' &&
+//   typeof chrome.runtime === 'object' &&
+//   typeof chrome.runtime.id === 'string' &&
+//   typeof chrome.sockets === 'object' &&
+//   typeof chrome.sockets.tcpServer === 'object' &&
+//   typeof chrome.sockets.tcp === 'object'
+// ) {
 //   chrome.sockets.tcpServer.onAccept.addListener(onAccept)
 //   chrome.sockets.tcpServer.onAcceptError.addListener(onAcceptError)
 //   chrome.sockets.tcp.onReceive.addListener(onReceive)
@@ -139,12 +147,18 @@ function Server (options, connectionListener) {
   EventEmitter.call(this)
 
   if (!listenersAdded) {
-    if (typeof chrome === 'object' && typeof chrome.runtime === 'object' && typeof chrome.runtime.id === 'string') {
+    if (
+      typeof chrome === 'object' &&
+      typeof chrome.runtime === 'object' &&
+      typeof chrome.runtime.id === 'string' &&
+      typeof chrome.sockets === 'object' &&
+      typeof chrome.sockets.tcpServer === 'object' &&
+      typeof chrome.sockets.tcp === 'object'
+    ) {
       chrome.sockets.tcpServer.onAccept.addListener(onAccept)
       chrome.sockets.tcpServer.onAcceptError.addListener(onAcceptError)
       chrome.sockets.tcp.onReceive.addListener(onReceive)
       chrome.sockets.tcp.onReceiveError.addListener(onReceiveError)
-      listenersAdded = true
     }
   }
 
@@ -527,15 +541,21 @@ function Socket (options) {
   if (!(this instanceof Socket)) return new Socket(options)
 
   if (!listenersAdded) {
-    if (typeof chrome === 'object' && typeof chrome.runtime === 'object' && typeof chrome.runtime.id === 'string') {
+    if (
+      typeof chrome === 'object' &&
+      typeof chrome.runtime === 'object' &&
+      typeof chrome.runtime.id === 'string' &&
+      typeof chrome.sockets === 'object' &&
+      typeof chrome.sockets.tcpServer === 'object' &&
+      typeof chrome.sockets.tcp === 'object'
+    ) {
       chrome.sockets.tcpServer.onAccept.addListener(onAccept)
       chrome.sockets.tcpServer.onAcceptError.addListener(onAcceptError)
       chrome.sockets.tcp.onReceive.addListener(onReceive)
       chrome.sockets.tcp.onReceiveError.addListener(onReceiveError)
-      listenersAdded = true
     }
   }
-  
+
   if (typeof options === 'number') {
     options = { fd: options } // Legacy interface.
   } else if (options === undefined) {
@@ -1133,9 +1153,9 @@ function assertPort (port) {
   }
 }
 
-// This prevents "Unchecked runtime.lastError" errors
+// Call the getter function to prevent "Unchecked runtime.lastError" errors
 function ignoreLastError () {
-  void chrome.runtime.lastError // call the getter function
+  void chrome.runtime.lastError // eslint-disable-line no-void
 }
 
 function chromeCallbackWrap (callback) {
@@ -1180,9 +1200,9 @@ var errorChromeToUv = {
   '-118': 'ETIMEDOUT',
   '-100': 'EOF'
 }
-function errnoException (err, syscall) {
+function errnoException (err, syscall, details) {
   var uvCode = errorChromeToUv[err] || 'UNKNOWN'
-  var message = syscall + ' ' + err
+  var message = syscall + ' ' + err + ' ' + details
   if (chrome.runtime.lastError) {
     message += ' ' + chrome.runtime.lastError.message
   }
